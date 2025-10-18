@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Pace {
+  relax
+  normal
+  max
+}
+
+enum MoneyBand {
+  dollar           // $
+  dollarDollar     // $$
+  dollarDollarDollar // $$$
+}
+
+enum MealPlan {
+  light
+  standard
+  food_focused
+}
+
+enum Theme {
+  food
+  shopping
+  nightlife
+  rainy_day
+  scenic
+}
+
+enum PoiMode {
+  location_aware
+  activity_focused
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  username  String?  @unique
+  trips     Trip[]  
+  createdAt DateTime @default(now())
+}
+
+model Trip {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title      String?
+  city       String?        // optional for activity-only
+  destTz   String?        // e.g., "Asia/Tokyo" (required if city used)
+  startDate  DateTime
+  endDate    DateTime       // pick inclusive/exclusive in app logic
+
+  pace       Pace      @default(normal)
+  dayStart   String    @default("09:30") // local time string
+  dayEnd     String    @default("20:30")
+  budget     MoneyBand @default(dollarDollar)
+  mealPlan   MealPlan  @default(standard)
+
+  interests        Json      // { food, museums, ... }
+  cuisines         String[]  // ["ramen","sushi",...]
+
+  days      TripDay[]
+  calSync   CalendarSync?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model TripDay {
+  id          String   @id @default(cuid())
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade) // to find it, you use the tripId and this specific day is tied to the id
+
+  dateLocal   DateTime // midnight local (store as UTC date; keep destTz on Trip)
+  city        String?  // allows multi-city day trips
+  areaFocus   String[] @default([])
+  theme       Theme?
+
+  fixed       FixedWindow[]
+  items       AgendaItem[]
+
+  @@unique([tripId, dateLocal]) // prevent duplicate days
+  @@index([tripId])
+}
+
+/* Fixed time windows (flights, reservations, etc.) */
+model FixedWindow {
+  id          String   @id @default(cuid())
+  dayId       String
+  day         TripDay  @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  
+  title       String
+  startAt     DateTime // UTC
+  endAt       DateTime // UTC
+  location    String?
+  
+  @@index([dayId])
+}
+
+/* Places or abstract activities (activity_only has no geo) */
+model Poi {
+  id           String   @id @default(cuid())
+  mode         PoiMode  @default(location_aware)
+
+  city         String?
+  name         String
+  tags         String[]        // ["museum","indoor",...]
+  cuisine      String[] @default([]) // only used for restaurants/food
+  priceBand    MoneyBand?
+  popularity   Float?
+  iconic       Boolean  @default(false)
+
+  district     String?
+  lat          Float? // latitude
+  lng          Float? // longitude 
+  addressEn    String?
+
+  createdAt    DateTime @default(now())
+
+  // Relations
+  agendaItems  AgendaItem[]
+
+  @@index([city])
+}
+
+/* The scheduled block on a day */
+model AgendaItem {
+  id          String   @id @default(cuid())
+  dayId       String
+  day         TripDay  @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  poiId       String
+  poi         Poi      @relation(fields: [poiId], references: [id])
+
+  startAt     DateTime // UTC
+  endAt       DateTime // UTC
+  locked      Boolean  @default(false) // agenda items keeped for regeneration
+  mode        PoiMode  // mirror of poi.mode for quick filtering
+
+  @@index([dayId, startAt])
+  @@index([poiId])
+}
+
+/* Link to the Google Calendar you exported to */
+model CalendarSync {
+  tripId     String  @id
+  trip       Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  calendarId String
+  lastSynced DateTime?
+}

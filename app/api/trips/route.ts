@@ -2,6 +2,12 @@ import { Pace } from "@/app/generated/prisma";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { DateTime } from "luxon";
+import { createTripSchema, type CreateTripInput } from "@/lib/validations";
+import {
+  handleValidationError,
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/lib/validation-utils";
 
 function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
   const start = DateTime.fromISO(startISO, { zone: tz }).startOf("day");
@@ -19,6 +25,14 @@ function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Validate input with Zod
+    const validationResult = createTripSchema.safeParse(body);
+    if (!validationResult.success) {
+      return handleValidationError(validationResult.error);
+    }
+
+    const validatedData: CreateTripInput = validationResult.data;
     const {
       userId,
       title,
@@ -26,48 +40,53 @@ export async function POST(request: NextRequest) {
       destTz,
       startDate,
       endDate,
-      pace = Pace.normal,
-      dayStart = "09:30",
-      dayEnd = "20:30",
-      interests = { selected: [] },
-      cuisines = [],
-    } = body;
-    if (!userId || !title || !city || !destTz || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+      pace,
+      dayStart,
+      dayEnd,
+      budget,
+      mealPlan,
+      interests,
+      cuisines,
+    } = validatedData;
     const trip = await prisma.trip.create({
       data: {
         userId,
         title,
         city,
         destTz,
-        startDate,
-        endDate,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
         pace,
         dayStart,
         dayEnd,
+        budget,
+        mealPlan,
         interests,
         cuisines,
       },
     });
 
     const tz = destTz ?? "UTC";
-    const days = eachDateAsUTC(startDate as string, endDate as string, tz).map(
-      (date) => ({
-        tripId: trip.id,
-        dateLocal: date,
-      })
-    );
+    const days = eachDateAsUTC(startDate, endDate, tz).map((date) => ({
+      tripId: trip.id,
+      dateLocal: date,
+    }));
     await prisma.tripDay.createMany({ data: days });
-    return NextResponse.json(trip, { status: 201 });
+
+    return createSuccessResponse(trip, 201);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Failed to create trip" },
-      { status: 500 }
-    );
+    console.error("Failed to create trip:", error);
+
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes("Unique constraint")) {
+        return createErrorResponse("Trip with this data already exists", 409);
+      }
+      if (error.message.includes("Foreign key constraint")) {
+        return createErrorResponse("Invalid user ID", 400);
+      }
+    }
+
+    return createErrorResponse("Failed to create trip");
   }
 }

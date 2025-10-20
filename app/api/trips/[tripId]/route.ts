@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/lib/validation-utils";
 
 export async function GET(
   request: NextRequest,
@@ -7,6 +11,10 @@ export async function GET(
 ) {
   try {
     const { tripId } = params;
+    // Validate tripId format
+    if (!tripId || typeof tripId !== "string") {
+      return createErrorResponse("Invalid trip ID", 400);
+    }
     const trip = await prisma.trip.findUnique({
       where: { id: tripId },
       include: {
@@ -24,17 +32,21 @@ export async function GET(
               orderBy: {
                 startAt: "asc",
               },
+              include: {
+                poi: true,
+              },
             },
           },
         },
       },
     });
     if (!trip) {
-      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+      return createErrorResponse("Trip not found", 404);
     }
-    return NextResponse.json(trip, { status: 200 });
+
+    return createSuccessResponse(trip);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to get trip" }, { status: 500 });
+    console.error("Failed to get trip:", error);
+    return createErrorResponse("Failed to get trip");
   }
 }

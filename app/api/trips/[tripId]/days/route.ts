@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/lib/validation-utils";
 
 export async function GET(
   request: NextRequest,
@@ -7,17 +11,21 @@ export async function GET(
 ) {
   try {
     const { tripId } = params;
+    // Validate tripId format
+    if (!tripId || typeof tripId !== "string") {
+      return createErrorResponse("Invalid trip ID", 400);
+    }
     const days = await prisma.tripDay.findMany({
       where: { tripId },
       orderBy: { dateLocal: "asc" },
       include: {
         fixed: { orderBy: { startAt: "asc" } },
-        items: { orderBy: { startAt: "asc" } },
+        items: { orderBy: { startAt: "asc" }, include: { poi: true } },
       },
     });
-    return NextResponse.json(days, { status: 200 });
+    return createSuccessResponse(days);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Failed to get days" }, { status: 500 });
+    console.error("Failed to get days:", error);
+    return createErrorResponse("Failed to get days");
   }
 }

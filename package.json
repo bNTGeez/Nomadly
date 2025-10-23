@@ -12,8 +12,10 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.53",
     "@prisma/client": "^6.17.1",
     "@prisma/extension-accelerate": "^2.0.2",
+    "ai": "^5.0.76",
     "luxon": "^3.7.2",
     "next": "15.5.5",
     "react": "19.1.0",

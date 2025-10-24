@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:pois": "tsx scripts/seed-pois.ts",
+    "seed:city": "tsx scripts/seed-city.ts",
+    "test:foursquare": "tsx scripts/test-foursquare.ts",
+    "test:nomadly": "tsx scripts/test-nomadly-seeding.ts",
+    "test:new-api": "tsx scripts/test-new-api.ts",
+    "debug:api": "tsx scripts/debug-api.ts",
+    "explore:categories": "tsx scripts/explore-categories.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

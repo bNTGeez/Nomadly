@@ -41,7 +41,6 @@ export interface CandidatePOI {
   district?: string;
   tags: string[];
   mode: "location_aware" | "activity_focused";
-  estimatedDuration?: number;
 }
 
 export interface FixedWindow {

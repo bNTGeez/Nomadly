@@ -51,6 +51,7 @@ model User {
   email     String   @unique
   name      String?
   username  String?  @unique
+  password  String   
   trips     Trip[]  
   createdAt DateTime @default(now())
 }

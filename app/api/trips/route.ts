@@ -8,6 +8,7 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from "@/lib/validation-utils";
+import { auth } from "@/lib/auth";
 
 function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
   const start = DateTime.fromISO(startISO, { zone: tz }).startOf("day");
@@ -22,19 +23,61 @@ function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
   return out;
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    // Get the authenticated user
+    const session = await auth();
+    if (!session?.user?.id) {
+      return createErrorResponse("Authentication required", 401);
+    }
+
+    // Get all trips for the user
+    const trips = await prisma.trip.findMany({
+      where: { userId: session.user.id },
+      select: {
+        id: true,
+        title: true,
+        city: true,
+        startDate: true,
+        endDate: true,
+        dayStart: true,
+        dayEnd: true,
+        budget: true,
+        interests: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" }, // Most recent first
+    });
+
+    return createSuccessResponse({ trips });
+  } catch (error) {
+    console.error("Failed to fetch trips:", error);
+    return createErrorResponse("Failed to fetch trips");
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Get the authenticated user
+    const session = await auth();
+    if (!session?.user?.id) {
+      return createErrorResponse("Authentication required", 401);
+    }
+
     const body = await request.json();
 
-    // Validate input with Zod
-    const validationResult = createTripSchema.safeParse(body);
+    // Validate input with Zod (using authenticated user's ID)
+    const validationResult = createTripSchema.safeParse({
+      ...body,
+      userId: session.user.id,
+    });
     if (!validationResult.success) {
       return handleValidationError(validationResult.error);
     }
 
     const validatedData: CreateTripInput = validationResult.data;
     const {
-      userId,
+      userId: validatedUserId,
       title,
       city,
       destTz,
@@ -50,7 +93,7 @@ export async function POST(request: NextRequest) {
     } = validatedData;
     const trip = await prisma.trip.create({
       data: {
-        userId,
+        userId: validatedUserId,
         title,
         city,
         destTz,

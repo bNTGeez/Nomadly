@@ -1,6 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { LocationAutocomplete } from "@/app/components/LocationAutocomplete";
+import {
+  isTimeValid,
+  isDateValid,
+  getTripDuration,
+  getTodayDateString,
+} from "@/lib/time-utils";
+
+interface LocationSuggestion {
+  id: string;
+  formatted: string;
+  city: string;
+  country: string;
+  countryCode: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  timezone?: string;
+  confidence: number;
+  importance: number;
+  resultType: string;
+}
 
 interface ItineraryItem {
   poiId: string;
@@ -34,13 +57,18 @@ interface GenerateResponse {
 
 export default function HomePage() {
   const [location, setLocation] = useState("Tokyo, Japan");
+  const [selectedLocation, setSelectedLocation] =
+    useState<LocationSuggestion | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
   const [budget, setBudget] = useState("mid-range");
   const [travelStyle, setTravelStyle] = useState("explorer");
-  const [areaFocus, setAreaFocus] = useState<string[]>([]);
   const [poiMode, setPoiMode] = useState<"location_aware" | "activity_focused">(
     "location_aware"
   );
+  const [dayStart, setDayStart] = useState("09:30");
+  const [dayEnd, setDayEnd] = useState("20:30");
+  const [tripStartDate, setTripStartDate] = useState("");
+  const [tripEndDate, setTripEndDate] = useState("");
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
@@ -92,8 +120,6 @@ export default function HomePage() {
     "photography",
   ];
 
-  const areaOptions = ["新宿区", "東京", "渋谷区", "港区", "台東区"];
-
   const handleInterestToggle = (interest: string) => {
     setInterests((prev) =>
       prev.includes(interest)
@@ -102,10 +128,9 @@ export default function HomePage() {
     );
   };
 
-  const handleAreaToggle = (area: string) => {
-    setAreaFocus((prev) =>
-      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
-    );
+  const handleLocationSelect = (suggestion: LocationSuggestion) => {
+    setSelectedLocation(suggestion);
+    console.log("Selected location:", suggestion);
   };
 
   const handleGenerate = async () => {
@@ -113,24 +138,64 @@ export default function HomePage() {
     setError(null);
     setResult(null);
 
+    // Validate times and dates
+    if (!isTimeValid(dayStart, dayEnd)) {
+      setError("End time must be after start time");
+      setIsGenerating(false);
+      return;
+    }
+
+    if (!isDateValid(tripStartDate, tripEndDate)) {
+      setError("Please select valid start and end dates");
+      setIsGenerating(false);
+      return;
+    }
+
     try {
-      const response = await fetch(
-        "/api/trips/cmgtpa3db00012me8qtkt1eig/generate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            dayNumber: 1,
-            interests,
-            budget,
-            travelStyle,
-            areaFocus,
-            poiMode,
-          }),
-        }
-      );
+      // First, create a trip
+      const tripResponse = await fetch("/api/trips", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: `Trip to ${selectedLocation?.city || location}`,
+          city: selectedLocation?.city || location,
+          startDate: new Date(tripStartDate).toISOString(),
+          endDate: new Date(tripEndDate).toISOString(),
+          pace: "normal",
+          dayStart: dayStart,
+          dayEnd: dayEnd,
+          budget: budget === "mid-range" ? "dollarDollar" : "dollar",
+          mealPlan: "standard",
+          interests,
+          cuisines: [],
+        }),
+      });
+
+      if (!tripResponse.ok) {
+        const errorData = await tripResponse.json();
+        throw new Error(
+          `Failed to create trip: ${errorData.error || tripResponse.status}`
+        );
+      }
+
+      const trip = await tripResponse.json();
+
+      // Then generate the itinerary
+      const response = await fetch(`/api/trips/${trip.id}/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          dayNumber: 1,
+          interests,
+          budget,
+          travelStyle,
+          poiMode,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -174,6 +239,9 @@ export default function HomePage() {
       };
 
       setResult(processedData);
+
+      // Redirect to trip page after successful generation
+      window.location.href = `/trip/${trip.id}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -195,13 +263,74 @@ export default function HomePage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Destination
             </label>
-            <input
-              type="text"
+            <LocationAutocomplete
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={setLocation}
+              onSelect={handleLocationSelect}
               placeholder="Enter your destination"
+              className="w-full"
+              requireSelection={true}
             />
+          </div>
+
+          {/* Trip Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={tripStartDate}
+                onChange={(e) => setTripStartDate(e.target.value)}
+                min={getTodayDateString()} // Can't select past dates
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  !isDateValid(tripStartDate, tripEndDate) &&
+                  tripStartDate &&
+                  tripEndDate
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                When your trip begins
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={tripEndDate}
+                onChange={(e) => setTripEndDate(e.target.value)}
+                min={tripStartDate || getTodayDateString()}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  !isDateValid(tripStartDate, tripEndDate) &&
+                  tripStartDate &&
+                  tripEndDate
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
+              />
+              <p
+                className={`text-xs mt-1 ${
+                  !isDateValid(tripStartDate, tripEndDate) &&
+                  tripStartDate &&
+                  tripEndDate
+                    ? "text-red-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {!isDateValid(tripStartDate, tripEndDate) &&
+                tripStartDate &&
+                tripEndDate
+                  ? "End date must be after start date"
+                  : tripStartDate && tripEndDate
+                  ? `${getTripDuration(tripStartDate, tripEndDate)} days trip`
+                  : "When your trip ends"}
+              </p>
+            </div>
           </div>
 
           {/* Interests */}
@@ -258,25 +387,47 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Area Focus */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Area Focus (Optional)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {areaOptions.map((area) => (
-                <button
-                  key={area}
-                  onClick={() => handleAreaToggle(area)}
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    areaFocus.includes(area)
-                      ? "bg-green-500 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  {area}
-                </button>
-              ))}
+          {/* Day Schedule */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Day Start Time
+              </label>
+              <input
+                type="time"
+                value={dayStart}
+                onChange={(e) => setDayStart(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                When you want to start your day
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Day End Time
+              </label>
+              <input
+                type="time"
+                value={dayEnd}
+                onChange={(e) => setDayEnd(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                  !isTimeValid(dayStart, dayEnd) && dayEnd !== "20:30"
+                    ? "border-red-300 focus:ring-red-500"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
+              />
+              <p
+                className={`text-xs mt-1 ${
+                  !isTimeValid(dayStart, dayEnd) && dayEnd !== "20:30"
+                    ? "text-red-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {!isTimeValid(dayStart, dayEnd) && dayEnd !== "20:30"
+                  ? "End time must be after start time"
+                  : "When you want to end your day"}
+              </p>
             </div>
           </div>
 
@@ -320,7 +471,12 @@ export default function HomePage() {
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={
+              isGenerating ||
+              !selectedLocation ||
+              !isTimeValid(dayStart, dayEnd) ||
+              !isDateValid(tripStartDate, tripEndDate)
+            }
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isGenerating ? "🤖 Generating..." : "✨ Generate Itinerary"}

@@ -29,6 +29,12 @@ const Navbar = () => {
             <span className="text-gray-400">Loading...</span>
           ) : session ? (
             <div className="flex items-center gap-4">
+              <Link href="/trips" className="hover:text-gray-700">
+                My Trips
+              </Link>
+              <Link href="/generate" className="hover:text-gray-700">
+                Generate
+              </Link>
               <Link href="/profile" className="hover:text-gray-700">
                 Profile
               </Link>

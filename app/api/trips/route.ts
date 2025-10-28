@@ -8,7 +8,11 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from "@/lib/validation-utils";
-import { auth } from "@/lib/auth";
+import {
+  withAuthGET,
+  withAuthPOST,
+  AuthenticatedRequest,
+} from "@/lib/auth-wrapper";
 
 function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
   const start = DateTime.fromISO(startISO, { zone: tz }).startOf("day");
@@ -23,17 +27,11 @@ function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
   return out;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuthGET(async (request: AuthenticatedRequest) => {
   try {
-    // Get the authenticated user
-    const session = await auth();
-    if (!session?.user?.id) {
-      return createErrorResponse("Authentication required", 401);
-    }
-
-    // Get all trips for the user
+    // Get all trips for the authenticated user
     const trips = await prisma.trip.findMany({
-      where: { userId: session.user.id },
+      where: { userId: request.user.id },
       select: {
         id: true,
         title: true,
@@ -54,22 +52,16 @@ export async function GET(request: NextRequest) {
     console.error("Failed to fetch trips:", error);
     return createErrorResponse("Failed to fetch trips");
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAuthPOST(async (request: AuthenticatedRequest) => {
   try {
-    // Get the authenticated user
-    const session = await auth();
-    if (!session?.user?.id) {
-      return createErrorResponse("Authentication required", 401);
-    }
-
     const body = await request.json();
 
     // Validate input with Zod (using authenticated user's ID)
     const validationResult = createTripSchema.safeParse({
       ...body,
-      userId: session.user.id,
+      userId: request.user.id,
     });
     if (!validationResult.success) {
       return handleValidationError(validationResult.error);
@@ -132,4 +124,4 @@ export async function POST(request: NextRequest) {
 
     return createErrorResponse("Failed to create trip");
   }
-}
+});

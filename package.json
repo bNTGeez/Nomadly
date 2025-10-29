@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.53",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.4",
     "@prisma/client": "^6.17.1",
     "@prisma/extension-accelerate": "^2.0.2",
     "@types/bcryptjs": "^2.4.6",

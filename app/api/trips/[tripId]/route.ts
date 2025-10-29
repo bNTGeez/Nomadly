@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { withAuthGET, AuthenticatedRequest } from "@/lib/auth-wrapper";
+import {
+  withAuthGET,
+  withAuthDELETE,
+  AuthenticatedRequest,
+} from "@/lib/auth-wrapper";
+import {
+  createErrorResponse,
+  createSuccessResponse,
+} from "@/lib/validation-utils";
 
 export const GET = withAuthGET(
   async (
@@ -41,6 +49,40 @@ export const GET = withAuthGET(
         { error: "Failed to fetch trip" },
         { status: 500 }
       );
+    }
+  }
+);
+
+export const DELETE = withAuthDELETE(
+  async (
+    request: AuthenticatedRequest,
+    { params }: { params: Promise<{ tripId: string }> }
+  ) => {
+    try {
+      const { tripId } = await params;
+
+      // First verify the trip exists and belongs to the user
+      const trip = await prisma.trip.findUnique({
+        where: {
+          id: tripId,
+          userId: request.user.id,
+        },
+        select: { id: true },
+      });
+
+      if (!trip) {
+        return createErrorResponse("Trip not found", 404);
+      }
+
+      // Delete the trip
+      await prisma.trip.delete({
+        where: { id: tripId },
+      });
+
+      return createSuccessResponse({ message: "Trip deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete trip:", error);
+      return createErrorResponse("Failed to delete trip");
     }
   }
 );

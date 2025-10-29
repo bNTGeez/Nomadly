@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { Clock, MapPin, Star, Calendar, ArrowLeft } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Clock, MapPin, Star, Calendar, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
 import {
   formatTime,
@@ -11,6 +11,7 @@ import {
   formatDuration,
   formatBudget,
 } from "@/lib/time-utils";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 interface Trip {
   id: string;
@@ -53,11 +54,14 @@ interface TripPageData {
 
 export default function TripPage() {
   const params = useParams();
+  const router = useRouter();
   const tripId = params.tripId as string;
 
   const [tripData, setTripData] = useState<TripPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     const fetchTripData = async () => {
@@ -106,6 +110,36 @@ export default function TripPage() {
     return `${mins}m`;
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!tripData?.trip) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/trips/${tripId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete trip");
+      }
+
+      // Redirect to trips page after successful deletion
+      router.push("/trips");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete trip");
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -149,25 +183,39 @@ export default function TripPage() {
           <div className="flex items-center justify-between">
             <div>
               <Link
-                href="/generate"
+                href="/trips"
                 className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-2"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Generate
+                Back to Trips
               </Link>
               <h1 className="text-3xl font-bold text-gray-900">{trip.title}</h1>
               <p className="text-gray-600 mt-1">{trip.city}</p>
             </div>
-            <div className="text-right">
-              <div className="flex items-center text-sm text-gray-500 mb-1">
-                <Calendar className="w-4 h-4 mr-1" />
-                {new Date(trip.startDate).toLocaleDateString()} -{" "}
-                {new Date(trip.endDate).toLocaleDateString()}
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="flex items-center text-sm text-gray-500 mb-1">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  {new Date(trip.startDate).toLocaleDateString()} -{" "}
+                  {new Date(trip.endDate).toLocaleDateString()}
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <Clock className="w-4 h-4 mr-1" />
+                  {formatTime(trip.dayStart)} - {formatTime(trip.dayEnd)}
+                </div>
               </div>
-              <div className="flex items-center text-sm text-gray-500">
-                <Clock className="w-4 h-4 mr-1" />
-                {formatTime(trip.dayStart)} - {formatTime(trip.dayEnd)}
-              </div>
+              <button
+                onClick={handleDeleteClick}
+                disabled={deleting}
+                className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete trip"
+              >
+                {deleting ? (
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin"></div>
+                ) : (
+                  <Trash2 className="w-5 h-5" />
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -313,6 +361,19 @@ export default function TripPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Trip"
+        message={`Are you sure you want to delete "${tripData?.trip.title}"? This action cannot be undone and will permanently remove the trip and all its data.`}
+        confirmText="Delete Trip"
+        cancelText="Cancel"
+        isLoading={deleting}
+        variant="danger"
+      />
     </div>
   );
 }

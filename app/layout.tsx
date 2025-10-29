@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/app/components/Navbar";
 import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/lib/auth-context";
+import MUIThemeProvider from "@/lib/mui-theme-provider";
 
 export const metadata: Metadata = {
   title: "Nomadly",
@@ -17,12 +18,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <SessionProvider>
-          <AuthProvider>
-            <Navbar />
-            {children}
-          </AuthProvider>
-        </SessionProvider>
+        <MUIThemeProvider>
+          <SessionProvider>
+            <AuthProvider>
+              <Navbar />
+              {children}
+            </AuthProvider>
+          </SessionProvider>
+        </MUIThemeProvider>
       </body>
     </html>
   );

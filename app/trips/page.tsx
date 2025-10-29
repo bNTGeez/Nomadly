@@ -2,13 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Calendar, MapPin, Clock, Star, Plus, ArrowRight } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Star,
+  Plus,
+  ArrowRight,
+  Trash2,
+} from "lucide-react";
 import {
   formatDate,
   formatTime,
   formatBudget,
   getDaysDifference,
 } from "@/lib/time-utils";
+import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 interface Trip {
   id: string;
@@ -27,6 +36,12 @@ export default function TripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingTripId, setDeletingTripId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [tripToDelete, setTripToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -46,6 +61,41 @@ export default function TripsPage() {
 
     fetchTrips();
   }, []);
+
+  const handleDeleteClick = (tripId: string, tripTitle: string) => {
+    setTripToDelete({ id: tripId, title: tripTitle });
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!tripToDelete) return;
+
+    setDeletingTripId(tripToDelete.id);
+    try {
+      const response = await fetch(`/api/trips/${tripToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete trip");
+      }
+
+      // Remove the trip from the local state
+      setTrips(trips.filter((trip) => trip.id !== tripToDelete.id));
+      setShowDeleteModal(false);
+      setTripToDelete(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete trip");
+    } finally {
+      setDeletingTripId(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setTripToDelete(null);
+  };
 
   if (loading) {
     return (
@@ -106,84 +156,113 @@ export default function TripsPage() {
         {trips.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip) => (
-              <Link
+              <div
                 key={trip.id}
-                href={`/trip/${trip.id}`}
-                className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
+                className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden relative"
               >
                 <div className="p-6">
                   {/* Trip Header */}
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                    <Link
+                      href={`/trip/${trip.id}`}
+                      className="flex-1 min-w-0 group/link"
+                    >
+                      <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 group-hover/link:text-blue-600 transition-colors truncate">
                         {trip.title}
                       </h3>
                       <div className="flex items-center text-gray-500 text-sm mt-1">
                         <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
                         <span className="truncate">{trip.city}</span>
                       </div>
+                    </Link>
+                    <div className="flex items-center gap-2 ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDeleteClick(trip.id, trip.title);
+                        }}
+                        disabled={deletingTripId === trip.id}
+                        className="p-1 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete trip"
+                      >
+                        {deletingTripId === trip.id ? (
+                          <div className="w-4 h-4 border-2 border-gray-300 border-t-red-500 rounded-full animate-spin"></div>
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                      <Link
+                        href={`/trip/${trip.id}`}
+                        className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                        title="View trip"
+                      >
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
                     </div>
-                    <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0 ml-2" />
                   </div>
 
                   {/* Trip Details */}
-                  <div className="space-y-3">
-                    {/* Dates */}
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span>
-                        {formatDate(trip.startDate)} -{" "}
-                        {formatDate(trip.endDate)}
-                      </span>
-                      <span className="ml-2 text-gray-400">
-                        ({getDaysDifference(trip.startDate, trip.endDate)} days)
-                      </span>
-                    </div>
-
-                    {/* Daily Schedule */}
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span>
-                        {formatTime(trip.dayStart)} - {formatTime(trip.dayEnd)}
-                      </span>
-                    </div>
-
-                    {/* Budget */}
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Star className="w-4 h-4 mr-2 flex-shrink-0" />
-                      <span className="capitalize">
-                        {formatBudget(trip.budget)}
-                      </span>
-                    </div>
-
-                    {/* Interests */}
-                    {trip.interests.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {trip.interests.slice(0, 3).map((interest, index) => (
-                          <span
-                            key={index}
-                            className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                          >
-                            {interest}
-                          </span>
-                        ))}
-                        {trip.interests.length > 3 && (
-                          <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-                            +{trip.interests.length - 3} more
-                          </span>
-                        )}
+                  <Link href={`/trip/${trip.id}`} className="block">
+                    <div className="space-y-3">
+                      {/* Dates */}
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span>
+                          {formatDate(trip.startDate)} -{" "}
+                          {formatDate(trip.endDate)}
+                        </span>
+                        <span className="ml-2 text-gray-400">
+                          ({getDaysDifference(trip.startDate, trip.endDate)}{" "}
+                          days)
+                        </span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Created Date */}
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-400">
-                      Created {formatDate(trip.createdAt)}
-                    </p>
-                  </div>
+                      {/* Daily Schedule */}
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Clock className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span>
+                          {formatTime(trip.dayStart)} -{" "}
+                          {formatTime(trip.dayEnd)}
+                        </span>
+                      </div>
+
+                      {/* Budget */}
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Star className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <span className="capitalize">
+                          {formatBudget(trip.budget)}
+                        </span>
+                      </div>
+
+                      {/* Interests */}
+                      {trip.interests.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {trip.interests.slice(0, 3).map((interest, index) => (
+                            <span
+                              key={index}
+                              className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                            >
+                              {interest}
+                            </span>
+                          ))}
+                          {trip.interests.length > 3 && (
+                            <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+                              +{trip.interests.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Created Date */}
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <p className="text-xs text-gray-400">
+                        Created {formatDate(trip.createdAt)}
+                      </p>
+                    </div>
+                  </Link>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         ) : (
@@ -209,6 +288,19 @@ export default function TripsPage() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Trip"
+        message={`Are you sure you want to delete "${tripToDelete?.title}"? This action cannot be undone and will permanently remove the trip and all its data.`}
+        confirmText="Delete Trip"
+        cancelText="Cancel"
+        isLoading={deletingTripId === tripToDelete?.id}
+        variant="danger"
+      />
     </div>
   );
 }

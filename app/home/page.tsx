@@ -43,8 +43,6 @@ const HomePage = () => {
         />
 
         <FeaturesSection />
-
-        {!session && <CTASection onSignUp={handleSignUp} />}
       </div>
 
       <Footer />

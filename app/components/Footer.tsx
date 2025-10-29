@@ -14,30 +14,10 @@ export const Footer: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap justify-center md:justify-end gap-4 sm:gap-6 text-sm text-gray-600">
-              <a
-                href="/about"
-                className="hover:text-gray-900 transition-colors"
-              >
-                About
-              </a>
-              <a
-                href="/contact"
-                className="hover:text-gray-900 transition-colors"
-              >
-                Contact
-              </a>
-              <a
-                href="/privacy"
-                className="hover:text-gray-900 transition-colors"
-              >
-                Privacy
-              </a>
-              <a
-                href="/terms"
-                className="hover:text-gray-900 transition-colors"
-              >
-                Terms
-              </a>
+              <p className="hover:text-gray-900 transition-colors">About</p>
+              <p className="hover:text-gray-900 transition-colors">Contact</p>
+              <p className="hover:text-gray-900 transition-colors">Privacy</p>
+              <p className="hover:text-gray-900 transition-colors">Terms</p>
             </div>
           </div>
 

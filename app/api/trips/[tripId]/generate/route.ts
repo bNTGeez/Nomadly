@@ -166,8 +166,27 @@ export const POST = withAuthPOST(
           where: { dayId: { in: tripDays.map((day) => day.id) } },
         });
 
+        // Track POIs already used across all days to avoid duplicates
+        const usedPOIIds = new Set<string>();
+
         // Generate itinerary for each day
         for (const tripDay of tripDays) {
+          const dayNumber = tripDays.indexOf(tripDay) + 1;
+          const availablePOIs = recommendedPOIs.filter(
+            (poi) => !usedPOIIds.has(poi.id)
+          );
+          const finalPOIs =
+            availablePOIs.length >= 6
+              ? availablePOIs
+              : [
+                  ...availablePOIs,
+                  ...recommendedPOIs.filter((poi) => usedPOIIds.has(poi.id)),
+                ];
+
+          console.log(
+            `Day ${dayNumber}: ${availablePOIs.length} new POIs available, ${usedPOIIds.size} already used`
+          );
+
           // Generate a fresh itinerary for this specific day
           const dayContext: DayContext = {
             destination: trip.city,
@@ -179,7 +198,7 @@ export const POST = withAuthPOST(
 
           const rawDayItinerary = await generateDayItinerary(
             dayContext,
-            recommendedPOIs,
+            finalPOIs,
             [] // No fixed windows for now
           );
 
@@ -190,6 +209,11 @@ export const POST = withAuthPOST(
             validPOIIds,
             6 // Max 6 items per day
           );
+
+          // Track which POIs were used in this day's itinerary
+          validatedDayItinerary.items.forEach((item: any) => {
+            usedPOIIds.add(item.poiId);
+          });
 
           // Save itinerary items for this day
           const agendaItems = validatedDayItinerary.items

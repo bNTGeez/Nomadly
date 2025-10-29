@@ -65,13 +65,15 @@ Your job:
 3. Assign realistic durations (20-240 minutes per POI)
 4. Mark meals/restaurants with isMeal: true
 5. Balance must-see attractions with local experiences
+6. PRIORITIZE NEW POIs - avoid repeating places from previous days
 
 Constraints:
 - Only use POIs from the provided candidate list
 - Fixed windows are for context only - you don't need to avoid them
 - Consider travel time between locations
 - Match traveler interests and budget
-- Keep the day manageable (max 6 items)`,
+- Keep the day manageable (max 6 items)
+- IMPORTANT: The candidate list is pre-filtered to avoid duplicates - prioritize the first POIs in the list as they are new/unused`,
     messages: [
       {
         role: "user",

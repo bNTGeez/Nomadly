@@ -321,6 +321,20 @@ export default function TripPage() {
                                 </p>
                               )}
 
+                              {(item as any).mapsUrl && (
+                                <div className="mt-1">
+                                  <a
+                                    href={(item as any).mapsUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 hover:underline"
+                                  >
+                                    {(item as any).address ||
+                                      "Open in Google Maps"}
+                                  </a>
+                                </div>
+                              )}
+
                               {item.isMeal && (
                                 <span className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full mt-2">
                                   Meal

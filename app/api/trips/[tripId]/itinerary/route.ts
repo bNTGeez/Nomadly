@@ -38,6 +38,9 @@ export const GET = withAuthGET(
                   cuisine: true,
                   priceBand: true,
                   iconic: true,
+                  addressEn: true,
+                  lat: true,
+                  lng: true,
                 },
               },
             },
@@ -71,6 +74,13 @@ export const GET = withAuthGET(
           startTime: new Date(item.startAt).toTimeString().slice(0, 5),
           endTime: new Date(item.endAt).toTimeString().slice(0, 5),
           poiName: item.poi.name,
+          address: item.poi.addressEn ?? null,
+          mapsUrl:
+            item.poi.lat != null && item.poi.lng != null
+              ? `https://www.google.com/maps/search/?api=1&query=${item.poi.lat},${item.poi.lng}`
+              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${item.poi.name} ${item.poi.addressEn ?? ""}`.trim()
+                )}`,
         })),
       }));
 

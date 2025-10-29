@@ -18,12 +18,6 @@ const Navbar = () => {
           <Link href="/home" className="hover:text-gray-700">
             Home
           </Link>
-          <Link href="/about" className="hover:text-gray-700">
-            About
-          </Link>
-          <Link href="/contact" className="hover:text-gray-700">
-            Contact
-          </Link>
 
           {status === "loading" ? (
             <span className="text-gray-400">Loading...</span>
@@ -31,9 +25,6 @@ const Navbar = () => {
             <div className="flex items-center gap-4">
               <Link href="/trips" className="hover:text-gray-700">
                 My Trips
-              </Link>
-              <Link href="/generate" className="hover:text-gray-700">
-                Generate
               </Link>
               <Link href="/profile" className="hover:text-gray-700">
                 Profile

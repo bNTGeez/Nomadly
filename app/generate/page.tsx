@@ -252,10 +252,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">🌍 Nomadly</h1>
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8 border">
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">
+            Plan your trip
+          </h1>
           <p className="text-gray-600 mb-6">
-            AI-powered trip planning for digital nomads
+            Create a tailored itinerary with your preferences.
           </p>
 
           {/* Location Input */}
@@ -333,27 +335,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Interests */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Interests
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {interestOptions.map((interest) => (
-                <button
-                  key={interest}
-                  onClick={() => handleInterestToggle(interest)}
-                  className={`px-3 py-1 rounded-full text-sm ${
-                    interests.includes(interest)
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  {interest}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Budget & Travel Style */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -468,6 +449,27 @@ export default function HomePage() {
             </div>
           </div>
 
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Interests (optional)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {interestOptions.map((interest) => (
+                <button
+                  key={interest}
+                  onClick={() => handleInterestToggle(interest)}
+                  className={`px-3 py-1 rounded-full text-sm ${
+                    interests.includes(interest)
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  {interest}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
@@ -477,9 +479,9 @@ export default function HomePage() {
               !isTimeValid(dayStart, dayEnd) ||
               !isDateValid(tripStartDate, tripEndDate)
             }
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed"
           >
-            {isGenerating ? "🤖 Generating..." : "✨ Generate Itinerary"}
+            {isGenerating ? "Generating..." : "Generate Itinerary"}
           </button>
         </div>
 
@@ -493,9 +495,9 @@ export default function HomePage() {
 
         {/* Results Display */}
         {result && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              📅 Your AI-Generated Itinerary
+              Your AI-Generated Itinerary
             </h2>
 
             {/* Metadata */}
@@ -526,11 +528,9 @@ export default function HomePage() {
             </div>
 
             {/* AI Reasoning */}
-            <div className="bg-blue-50 rounded-md p-4 mb-6">
-              <h3 className="font-medium text-blue-900 mb-2">
-                🤖 AI Reasoning
-              </h3>
-              <p className="text-blue-800">
+            <div className="bg-gray-50 rounded-md p-4 mb-6 border">
+              <h3 className="font-medium text-gray-900 mb-2">Planner notes</h3>
+              <p className="text-gray-700">
                 {result.poiRecommendations.reasoning}
               </p>
             </div>
@@ -562,7 +562,9 @@ export default function HomePage() {
                           {index + 1}. {item.poiName || `POI: ${item.poiId}`}
                         </h4>
                         {item.isMeal && (
-                          <span className="text-orange-600 text-xl">🍽️</span>
+                          <span className="inline-flex items-center rounded-full bg-orange-100 text-orange-800 text-xs px-2 py-0.5">
+                            Meal
+                          </span>
                         )}
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
@@ -580,11 +582,11 @@ export default function HomePage() {
             </div>
 
             {/* Day Reasoning */}
-            <div className="bg-green-50 rounded-md p-4 mt-6">
-              <h3 className="font-medium text-green-900 mb-2">
-                💭 Day Planning Logic
+            <div className="bg-gray-50 rounded-md p-4 mt-6 border">
+              <h3 className="font-medium text-gray-900 mb-2">
+                How this was planned
               </h3>
-              <p className="text-green-800">{result.itinerary.reasoning}</p>
+              <p className="text-gray-700">{result.itinerary.reasoning}</p>
             </div>
           </div>
         )}

@@ -267,6 +267,12 @@ export default function TripPage() {
                 ? `Your personalized itinerary for ${days.length} days, carefully planned based on your preferences and the local attractions.`
                 : "No itinerary items found for this trip."}
             </p>
+            {days.length > 0 && (
+              <div className="mt-3 rounded-md bg-blue-50 border border-blue-100 text-blue-800 text-sm px-3 py-2">
+                Note: Opening hours are not automatically verified. Please check
+                each place’s hours before you go.
+              </div>
+            )}
           </div>
 
           <div className="p-6">

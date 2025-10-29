@@ -335,7 +335,6 @@ export default function HomePage() {
             </div>
           </div>
 
-
           {/* Budget & Travel Style */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>

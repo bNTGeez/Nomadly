@@ -13,6 +13,7 @@ import {
   withAuthPOST,
   AuthenticatedRequest,
 } from "@/lib/auth-wrapper";
+import { generalLimiter, retryAfterSeconds } from "@/lib/rate-limit";
 
 function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
   const start = DateTime.fromISO(startISO, { zone: tz }).startOf("day");
@@ -29,6 +30,15 @@ function eachDateAsUTC(startISO: string, endISO: string, tz: string) {
 
 export const GET = withAuthGET(async (request: AuthenticatedRequest) => {
   try {
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const key = request.user?.id ? `trips:${request.user.id}` : `tripsip:${ip}`;
+    const { success, reset } = await generalLimiter.limit(key);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+      );
+    }
     // Get all trips for the authenticated user
     const trips = await prisma.trip.findMany({
       where: { userId: request.user.id },
@@ -56,6 +66,15 @@ export const GET = withAuthGET(async (request: AuthenticatedRequest) => {
 
 export const POST = withAuthPOST(async (request: AuthenticatedRequest) => {
   try {
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const key = request.user?.id ? `trips:${request.user.id}` : `tripsip:${ip}`;
+    const { success, reset } = await generalLimiter.limit(key);
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+      );
+    }
     const body = await request.json();
 
     // Validate input with Zod (using authenticated user's ID)

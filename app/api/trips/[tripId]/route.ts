@@ -5,6 +5,7 @@ import {
   withAuthDELETE,
   AuthenticatedRequest,
 } from "@/lib/auth-wrapper";
+import { generalLimiter, retryAfterSeconds } from "@/lib/rate-limit";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -16,6 +17,17 @@ export const GET = withAuthGET(
     { params }: { params: Promise<{ tripId: string }> }
   ) => {
     try {
+      const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+      const key = request.user?.id
+        ? `trips:${request.user.id}`
+        : `tripsip:${ip}`;
+      const { success, reset } = await generalLimiter.limit(key);
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+        );
+      }
       const { tripId } = await params;
 
       // Get trip details
@@ -59,6 +71,17 @@ export const DELETE = withAuthDELETE(
     { params }: { params: Promise<{ tripId: string }> }
   ) => {
     try {
+      const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+      const key = request.user?.id
+        ? `trips:${request.user.id}`
+        : `tripsip:${ip}`;
+      const { success, reset } = await generalLimiter.limit(key);
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+        );
+      }
       const { tripId } = await params;
 
       // First verify the trip exists and belongs to the user

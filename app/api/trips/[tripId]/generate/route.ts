@@ -10,6 +10,7 @@ import {
 import { FoursquareSeeder } from "@/lib/foursquare-seeder";
 import { parseTime, timeToMinutes, minutesToTime } from "@/lib/time-utils";
 import { withAuthPOST, AuthenticatedRequest } from "@/lib/auth-wrapper";
+import { aiLimiter, aiBurstLimiter, retryAfterSeconds } from "@/lib/rate-limit";
 
 export const POST = withAuthPOST(
   async (
@@ -17,6 +18,19 @@ export const POST = withAuthPOST(
     { params }: { params: Promise<{ tripId: string }> }
   ) => {
     try {
+      const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+      const key = request.user?.id ? `ai:${request.user.id}` : `aiip:${ip}`;
+      const [r1, r2] = await Promise.all([
+        aiLimiter.limit(key),
+        aiBurstLimiter.limit(`${key}:burst`),
+      ]);
+      if (!r1.success || !r2.success) {
+        const reset = !r1.success ? r1.reset : r2.reset;
+        return NextResponse.json(
+          { error: "Rate limit exceeded. Try again soon." },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+        );
+      }
       const { tripId } = await params;
       const body = await request.json();
       const {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { searchLimiter, retryAfterSeconds } from "@/lib/rate-limit";
 
 // Types for Geoapify API response
 interface GeoapifyFeature {
@@ -51,6 +52,18 @@ interface GeoapifyResponse {
 
 export async function GET(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+    const { success, reset } = await searchLimiter.limit(
+      `search:${ip}:autocomplete`
+    );
+    if (!success) {
+      const headers = new Headers();
+      headers.set("Retry-After", retryAfterSeconds(reset));
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers }
+      );
+    }
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("q");
 

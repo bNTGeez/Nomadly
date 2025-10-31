@@ -70,17 +70,20 @@ export const createTripSchema = z
       message: "Day end time must be after day start time",
       path: ["dayEnd"],
     }
-  );
+  )
+  .strict();
 
 // POI query schema
-export const poiQuerySchema = z.object({
-  city: z.string().min(1, "City is required"),
-  district: z.string().optional(),
-  tag: z.string().optional(),
-  query: z.string().optional(),
-  limit: z.coerce.number().min(1).max(100).default(20),
-  cursor: z.string().optional(),
-});
+export const poiQuerySchema = z
+  .object({
+    city: z.string().min(1, "City is required"),
+    district: z.string().optional(),
+    tag: z.string().optional(),
+    query: z.string().optional(),
+    limit: z.coerce.number().min(1).max(100).default(20),
+    cursor: z.string().optional(),
+  })
+  .strict();
 
 // Agenda item creation schema
 export const createAgendaItemSchema = z
@@ -94,7 +97,8 @@ export const createAgendaItemSchema = z
   .refine((data) => new Date(data.endAt) > new Date(data.startAt), {
     message: "End time must be after start time",
     path: ["endAt"],
-  });
+  })
+  .strict();
 
 // Fixed window creation schema
 export const createFixedWindowSchema = z
@@ -107,7 +111,8 @@ export const createFixedWindowSchema = z
   .refine((data) => new Date(data.endAt) > new Date(data.startAt), {
     message: "End time must be after start time",
     path: ["endAt"],
-  });
+  })
+  .strict();
 
 // Trip update schema (partial)
 export const updateTripSchema = createTripSchema
@@ -115,30 +120,36 @@ export const updateTripSchema = createTripSchema
   .omit({ userId: true });
 
 // Day update schema
-export const updateDaySchema = z.object({
-  city: z.string().max(50).optional(),
-  areaFocus: z.array(z.string()).optional(),
-  theme: z
-    .enum(["food", "shopping", "nightlife", "rainy_day", "scenic"])
-    .optional(),
-});
+export const updateDaySchema = z
+  .object({
+    city: z.string().max(50).optional(),
+    areaFocus: z.array(z.string()).optional(),
+    theme: z
+      .enum(["food", "shopping", "nightlife", "rainy_day", "scenic"])
+      .optional(),
+  })
+  .strict();
 
 // Agenda item update schema
-export const updateAgendaItemSchema = z.object({
-  startAt: dateStringSchema.optional(),
-  endAt: dateStringSchema.optional(),
-  locked: z.boolean().optional(),
-  customDurationMin: z.number().min(15).max(480).optional(), // 15 min to 8 hours
-  note: z.string().max(500).optional(),
-});
+export const updateAgendaItemSchema = z
+  .object({
+    startAt: dateStringSchema.optional(),
+    endAt: dateStringSchema.optional(),
+    locked: z.boolean().optional(),
+    customDurationMin: z.number().min(15).max(480).optional(), // 15 min to 8 hours
+    note: z.string().max(500).optional(),
+  })
+  .strict();
 
 // Fixed window update schema
-export const updateFixedWindowSchema = z.object({
-  title: z.string().min(1).max(100).optional(),
-  startAt: dateStringSchema.optional(),
-  endAt: dateStringSchema.optional(),
-  location: z.string().max(200).optional(),
-});
+export const updateFixedWindowSchema = z
+  .object({
+    title: z.string().min(1).max(100).optional(),
+    startAt: dateStringSchema.optional(),
+    endAt: dateStringSchema.optional(),
+    location: z.string().max(200).optional(),
+  })
+  .strict();
 
 // Export types for use in routes
 export type CreateTripInput = z.infer<typeof createTripSchema>;

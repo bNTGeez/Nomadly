@@ -21,18 +21,18 @@ export function handleValidationError(error: ZodError) {
 export function createErrorResponse(
   message: string,
   status: number = 500,
-  details?: any
+  details?: unknown
 ) {
-  return NextResponse.json(
-    {
-      error: message,
-      ...(details && { details }),
-    },
-    { status }
-  );
+  const responseBody: { error: string; details?: unknown } = {
+    error: message,
+  };
+  if (details) {
+    responseBody.details = details;
+  }
+  return NextResponse.json(responseBody, { status });
 }
 
-export function createSuccessResponse(data: any, status: number = 200) {
+export function createSuccessResponse(data: unknown, status: number = 200) {
   return NextResponse.json(data, { status });
 }
 

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   createAgendaItemSchema,
@@ -13,10 +13,10 @@ import {
 // Create a new agenda item on a day
 export async function POST(
   request: NextRequest,
-  { params }: { params: { tripId: string; dayId: string } }
+  { params }: { params: Promise<{ tripId: string; dayId: string }> }
 ) {
   try {
-    const { dayId } = params;
+    const { dayId } = await params;
     // Validate dayId format
     if (!dayId || typeof dayId !== "string") {
       return createErrorResponse("Invalid day ID", 400);

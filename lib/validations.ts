@@ -1,11 +1,4 @@
 import { z } from "zod";
-import {
-  Pace,
-  MoneyBand,
-  MealPlan,
-  Theme,
-  PoiMode,
-} from "@/app/generated/prisma";
 
 // Common validation schemas
 export const uuidSchema = z.string("Invalid UUID format");

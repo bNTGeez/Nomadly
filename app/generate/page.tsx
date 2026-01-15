@@ -77,7 +77,6 @@ export default function HomePage() {
   // Function to calculate timestamps for itinerary items
   const calculateTimestamps = (items: ItineraryItem[]) => {
     const startHour = 9; // Start at 9 AM
-    let currentMinute = 0;
 
     return items.map((item, index) => {
       // Calculate start time based on previous items
@@ -571,7 +570,7 @@ export default function HomePage() {
                       </p>
                       {item.notes && (
                         <p className="text-sm text-gray-700 italic bg-gray-50 p-2 rounded">
-                          "{item.notes}"
+                          &quot;{item.notes}&quot;
                         </p>
                       )}
                     </div>

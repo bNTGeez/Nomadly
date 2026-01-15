@@ -4,13 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Clock, MapPin, Star, Calendar, ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
-import {
-  formatTime,
-  formatDate,
-  formatDateWithWeekday,
-  formatDuration,
-  formatBudget,
-} from "@/lib/time-utils";
+import { formatDateWithWeekday, formatBudget } from "@/lib/time-utils";
 import ConfirmationModal from "@/app/components/ConfirmationModal";
 
 interface Trip {
@@ -34,11 +28,8 @@ interface ItineraryItem {
   startTime?: string;
   endTime?: string;
   poiName?: string;
-}
-
-interface Itinerary {
-  items: ItineraryItem[];
-  reasoning: string;
+  mapsUrl?: string;
+  address?: string | null;
 }
 
 interface TripDay {
@@ -327,16 +318,15 @@ export default function TripPage() {
                                 </p>
                               )}
 
-                              {(item as any).mapsUrl && (
+                              {item.mapsUrl && (
                                 <div className="mt-1">
                                   <a
-                                    href={(item as any).mapsUrl}
+                                    href={item.mapsUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-sm text-blue-600 hover:underline"
                                   >
-                                    {(item as any).address ||
-                                      "Open in Google Maps"}
+                                    {item.address || "Open in Google Maps"}
                                   </a>
                                 </div>
                               )}

@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 type UserSeed = {
   name: string;
@@ -42,6 +43,9 @@ const users: UserSeed[] = [
 ];
 
 export async function main() {
+  // Hash a default password for seed users
+  const defaultPassword = await bcrypt.hash("password123", 12);
+
   for (const u of users) {
     const createdUser = await prisma.user.upsert({
       where: { email: u.email },
@@ -49,6 +53,7 @@ export async function main() {
       create: {
         name: u.name,
         email: u.email,
+        password: defaultPassword, // Required field
         trips: u.trip
           ? {
               create: {

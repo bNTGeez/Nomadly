@@ -53,16 +53,21 @@ interface GeoapifyResponse {
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-    const { success, reset } = await searchLimiter.limit(
-      `search:${ip}:autocomplete`
-    );
-    if (!success) {
-      const headers = new Headers();
-      headers.set("Retry-After", retryAfterSeconds(reset));
-      return NextResponse.json(
-        { error: "Too many requests" },
-        { status: 429, headers }
+    try {
+      const { success, reset } = await searchLimiter.limit(
+        `search:${ip}:autocomplete`
       );
+      if (!success) {
+        const headers = new Headers();
+        headers.set("Retry-After", retryAfterSeconds(reset));
+        return NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers }
+        );
+      }
+    } catch (rateLimitError) {
+      // If rate limiting fails (e.g., Redis unavailable), log and continue
+      console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
     }
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("q");

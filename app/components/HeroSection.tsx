@@ -1,11 +1,10 @@
 "use client";
 
 import React from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { type Session } from "next-auth";
 
 interface HeroSectionProps {
-  session: any;
+  session: Session | null;
   onGetStarted: () => void;
   onSignUp: () => void;
 }

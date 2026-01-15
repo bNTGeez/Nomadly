@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { HeroSection } from "@/app/components/HeroSection";
 import { FeaturesSection } from "@/app/components/FeaturesSection";
 import { LoadingSection } from "@/app/components/LoadingSection";
-import Footer from "@/app/components/Footer";
 
 const HomePage = () => {
   const { data: session, status } = useSession();

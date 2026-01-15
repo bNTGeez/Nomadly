@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   createErrorResponse,
@@ -7,10 +7,10 @@ import {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tripId: string } }
+  { params }: { params: Promise<{ tripId: string }> }
 ) {
   try {
-    const { tripId } = params;
+    const { tripId } = await params;
     // Validate tripId format
     if (!tripId || typeof tripId !== "string") {
       return createErrorResponse("Invalid trip ID", 400);

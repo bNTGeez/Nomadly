@@ -12,13 +12,20 @@ export type AuthenticatedRequest = NextRequest & {
   };
 };
 
-export type AuthenticatedHandler = (
+export type AuthenticatedHandler<
+  T extends Record<string, string> = Record<string, string>
+> = (
   request: AuthenticatedRequest,
-  context?: any
+  context: { params: Promise<T> }
 ) => Promise<NextResponse>;
 
-export function withAuth(handler: AuthenticatedHandler) {
-  return async (request: NextRequest, context?: any): Promise<NextResponse> => {
+export function withAuth<
+  T extends Record<string, string> = Record<string, string>
+>(handler: AuthenticatedHandler<T>) {
+  return async (
+    request: NextRequest,
+    context: { params: Promise<T> }
+  ): Promise<NextResponse> => {
     try {
       // Get the authenticated user
       const session = await auth();
@@ -45,18 +52,26 @@ export function withAuth(handler: AuthenticatedHandler) {
   };
 }
 
-export function withAuthGET(handler: AuthenticatedHandler) {
+export function withAuthGET<
+  T extends Record<string, string> = Record<string, string>
+>(handler: AuthenticatedHandler<T>) {
   return withAuth(handler);
 }
 
-export function withAuthPOST(handler: AuthenticatedHandler) {
+export function withAuthPOST<
+  T extends Record<string, string> = Record<string, string>
+>(handler: AuthenticatedHandler<T>) {
   return withAuth(handler);
 }
 
-export function withAuthPUT(handler: AuthenticatedHandler) {
+export function withAuthPUT<
+  T extends Record<string, string> = Record<string, string>
+>(handler: AuthenticatedHandler<T>) {
   return withAuth(handler);
 }
 
-export function withAuthDELETE(handler: AuthenticatedHandler) {
+export function withAuthDELETE<
+  T extends Record<string, string> = Record<string, string>
+>(handler: AuthenticatedHandler<T>) {
   return withAuth(handler);
 }

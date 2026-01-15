@@ -57,8 +57,8 @@ export class FoursquareSeeder {
 
   // Seed POIs from Foursquare for a specific city
   async seedCity(city: string, customCategories?: Record<string, string>) {
-    const nomadlyCategories = Object.entries(NOMADLY_CATEGORIES).reduce(
-      (acc, [key, group]) => {
+    const nomadlyCategories = Object.values(NOMADLY_CATEGORIES).reduce(
+      (acc, group) => {
         acc[group.label] = group.ids.join(",");
         return acc;
       },
@@ -68,15 +68,12 @@ export class FoursquareSeeder {
     // Use custom categories if provided, otherwise use Nomadly defaults
     const categories = customCategories || nomadlyCategories;
 
-    let totalSeeded = 0;
-
     for (const [categoryName, categoryId] of Object.entries(categories)) {
       try {
         const venues = await this.getVenues(city, categoryId, 50);
 
         for (const venue of venues) {
           await this.storeVenue(venue, city);
-          totalSeeded++;
         }
 
         // Rate limiting

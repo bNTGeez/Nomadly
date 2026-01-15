@@ -1,6 +1,5 @@
-import { Pace } from "@/app/generated/prisma";
 import prisma from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { DateTime } from "luxon";
 import { createTripSchema, type CreateTripInput } from "@/lib/validations";
 import {
@@ -32,12 +31,17 @@ export const GET = withAuthGET(async (request: AuthenticatedRequest) => {
   try {
     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
     const key = request.user?.id ? `trips:${request.user.id}` : `tripsip:${ip}`;
-    const { success, reset } = await generalLimiter.limit(key);
-    if (!success) {
-      return NextResponse.json(
-        { error: "Too many requests" },
-        { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
-      );
+    try {
+      const { success, reset } = await generalLimiter.limit(key);
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+        );
+      }
+    } catch (rateLimitError) {
+      // If rate limiting fails (e.g., Redis unavailable), log and continue
+      console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
     }
     // Get all trips for the authenticated user
     const trips = await prisma.trip.findMany({
@@ -68,12 +72,17 @@ export const POST = withAuthPOST(async (request: AuthenticatedRequest) => {
   try {
     const ip = request.headers.get("x-forwarded-for") ?? "unknown";
     const key = request.user?.id ? `trips:${request.user.id}` : `tripsip:${ip}`;
-    const { success, reset } = await generalLimiter.limit(key);
-    if (!success) {
-      return NextResponse.json(
-        { error: "Too many requests" },
-        { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
-      );
+    try {
+      const { success, reset } = await generalLimiter.limit(key);
+      if (!success) {
+        return NextResponse.json(
+          { error: "Too many requests" },
+          { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+        );
+      }
+    } catch (rateLimitError) {
+      // If rate limiting fails (e.g., Redis unavailable), log and continue
+      console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
     }
     const body = await request.json();
 

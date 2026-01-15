@@ -140,7 +140,7 @@ export function getCategoryIdsForNomads(needs: string[]): string[] {
  * Return a label for a given category ID
  */
 export function getCategoryLabel(categoryId: string): string | null {
-  for (const [key, group] of Object.entries(NOMADLY_CATEGORIES)) {
+  for (const group of Object.values(NOMADLY_CATEGORIES)) {
     if (group.ids.includes(categoryId)) return group.label;
   }
   return null;

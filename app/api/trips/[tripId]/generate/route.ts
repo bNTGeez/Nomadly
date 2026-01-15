@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import {
   generateDayItinerary,
@@ -20,16 +20,21 @@ export const POST = withAuthPOST(
     try {
       const ip = request.headers.get("x-forwarded-for") ?? "unknown";
       const key = request.user?.id ? `ai:${request.user.id}` : `aiip:${ip}`;
-      const [r1, r2] = await Promise.all([
-        aiLimiter.limit(key),
-        aiBurstLimiter.limit(`${key}:burst`),
-      ]);
-      if (!r1.success || !r2.success) {
-        const reset = !r1.success ? r1.reset : r2.reset;
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Try again soon." },
-          { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
-        );
+      try {
+        const [r1, r2] = await Promise.all([
+          aiLimiter.limit(key),
+          aiBurstLimiter.limit(`${key}:burst`),
+        ]);
+        if (!r1.success || !r2.success) {
+          const reset = !r1.success ? r1.reset : r2.reset;
+          return NextResponse.json(
+            { error: "Rate limit exceeded. Try again soon." },
+            { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+          );
+        }
+      } catch (rateLimitError) {
+        // If rate limiting fails (e.g., Redis unavailable), log and continue
+        console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
       }
       const { tripId } = await params;
       const body = await request.json();
@@ -225,13 +230,13 @@ export const POST = withAuthPOST(
           );
 
           // Track which POIs were used in this day's itinerary
-          validatedDayItinerary.items.forEach((item: any) => {
+          validatedDayItinerary.items.forEach((item) => {
             usedPOIIds.add(item.poiId);
           });
 
           // Save itinerary items for this day
           const agendaItems = validatedDayItinerary.items
-            .map((item: any, index: number) => {
+            .map((item, index: number) => {
               const poi = recommendedPOIs.find((p) => p.id === item.poiId);
               if (!poi) return null;
 
@@ -261,7 +266,7 @@ export const POST = withAuthPOST(
                 mode: poiMode as "location_aware" | "activity_focused",
               };
             })
-            .filter(Boolean);
+            .filter((item): item is NonNullable<typeof item> => item !== null);
 
           if (agendaItems.length > 0) {
             await prisma.agendaItem.createMany({

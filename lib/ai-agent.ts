@@ -176,17 +176,20 @@ Select the top 30-40 most relevant POIs and return their IDs.`,
 }
 
 // Server-side validation and clamping
+type ItineraryItem = z.infer<typeof ItineraryItemSchema>;
+type DayItinerary = z.infer<typeof DayItinerarySchema>;
+
 export function validateAndClampDayItinerary(
-  rawResult: any,
+  rawResult: DayItinerary,
   validPOIIds: string[],
   maxItems: number = 6
-) {
+): DayItinerary {
   // Clamp and validate the result
-  const clampedResult = {
+  const clampedResult: DayItinerary = {
     items: rawResult.items
       .slice(0, maxItems) // Cap items by pace
-      .filter((item: any) => validPOIIds.includes(item.poiId)) // Drop unknown POI IDs
-      .map((item: any) => ({
+      .filter((item: ItineraryItem) => validPOIIds.includes(item.poiId)) // Drop unknown POI IDs
+      .map((item: ItineraryItem) => ({
         ...item,
         durationMinutes: Math.max(20, Math.min(240, item.durationMinutes)), // Clamp duration
         isMeal: Boolean(item.isMeal), // Ensure boolean

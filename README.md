@@ -1,37 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nomadly 🌍
 
-## Getting Started
+An AI agent-powered travel planning application that helps users create personalized trip itineraries. Nomadly uses an intelligent AI agent to generate custom travel plans based on user preferences, budget, interests, and travel style.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- 🤖 **AI Agent Itinerary Generation**: Generate personalized day-by-day itineraries using an intelligent AI agent
+- 🗺️ **Smart POI Recommendations**: Automatically fetch and recommend points of interest from Foursquare
+- 🔍 **Location Autocomplete**: Fast city search with Geoapify integration
+- 📅 **Multi-Day Trip Planning**: Plan trips with custom start/end dates and daily schedules
+- ⚙️ **User Preferences**: Customize trips with budget, interests, travel style, and pace settings
+- 📋 **Trip Management**: Create, view, and manage multiple trips
+- 🛡️ **Rate Limiting**: Built-in protection against API abuse; protects external APIs and prevents abuse in multi-user scenarios
+- 🔐 **Secure Authentication**: Credentials-based auth via NextAuth.js with password hashing
+
+Unlike generic travel apps, Nomadly uses an AI agent to intelligently curate and schedule activities, optimizing for user preferences and minimizing travel time between locations.
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js v5
+- **AI Agent**: OpenAI (via AI SDK) – tool-augmented itinerary planning agent
+- **Styling**: Tailwind CSS
+- **Rate Limiting**: Upstash Redis
+- **APIs**:
+  - Foursquare (POI data)
+  - Geoapify (Location autocomplete)
+- **Deployment**: Vercel-ready
+
+## Project Structure
+
+```
+nomadly/
+├── app/
+│   ├── api/              # API routes
+│   │   ├── auth/         # Authentication endpoints
+│   │   ├── trips/        # Trip management endpoints
+│   │   ├── pois/         # Points of interest endpoints
+│   │   └── geocoding/     # Location autocomplete
+│   ├── components/       # React components
+│   ├── generate/         # Trip generation page
+│   ├── trips/            # Trip listing page
+│   ├── trip/             # Individual trip view
+│   └── layout.tsx        # Root layout
+├── lib/
+│   ├── ai-agent.ts       # AI agent for itinerary generation
+│   ├── auth.ts           # NextAuth configuration
+│   ├── prisma.ts         # Prisma client
+│   ├── rate-limit.ts     # Rate limiting setup
+│   ├── validations.ts    # Zod schemas
+│   └── ...               # Utility functions
+├── prisma/
+│   ├── schema.prisma     # Database schema
+│   └── seed.ts           # Database seeding
+└── types/                # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Features Explained
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### AI Agent Itinerary Planning
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The AI agent intelligently:
 
-## Learn More
+1. **POI Selection**: Analyzes available points of interest and selects the best matches based on user preferences, budget, and interests
+2. **Schedule Optimization**: Creates time-optimized daily schedules that minimize travel time between locations
+3. **Multi-Day Planning**: Generates cohesive itineraries across multiple days, avoiding duplicate activities
+4. **Context Awareness**: Considers travel style (relaxed, explorer, adventurer), budget constraints, and meal preferences
 
-To learn more about Next.js, take a look at the following resources:
+The agent operates in a tool-augmented flow, combining database queries, POI filtering, and structured itinerary generation before producing a final plan.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Location-Aware vs Activity-Focused Modes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Location-Aware Mode**: Optimizes for geographic proximity, minimizing travel time between activities
+- **Activity-Focused Mode**: Prioritizes the best experiences regardless of location
 
-## Deploy on Vercel
+### Smart POI Seeding
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Automatically fetches POIs from Foursquare when a new city is selected
+- Caches POI data to reduce API calls
+- Supports filtering by district/area focus
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# Nomadly
+## API Routes
+
+### Authentication
+
+Supports credentials-based authentication via NextAuth.js.
+
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/[...nextAuth]` - NextAuth endpoints
+
+### Trips
+
+- `GET /api/trips` - Get all trips for authenticated user
+- `POST /api/trips` - Create a new trip
+- `GET /api/trips/[tripId]` - Get trip details
+- `DELETE /api/trips/[tripId]` - Delete a trip
+- `POST /api/trips/[tripId]/generate` - Generate itinerary for a trip
+- `GET /api/trips/[tripId]/itinerary` - Get trip itinerary
+
+### POIs
+
+- `GET /api/pois` - Search POIs
+- `GET /api/pois/[poiId]` - Get POI details
+
+### Geocoding
+
+- `GET /api/geocoding/autocomplete` - Location autocomplete
+
+## Database Schema
+
+- **User**: User accounts with email, username, and hashed passwords
+- **Trip**: Trip plans with dates, preferences, and settings
+- **TripDay**: Individual days within a trip
+- **AgendaItem**: Scheduled activities/POIs for each day
+- **Poi**: Points of interest with location data, tags, and metadata
+- **FixedWindow**: Fixed time commitments (flights, reservations) for scheduling
+- **CalendarSync**: Google Calendar integration (schema ready, implementation extensible)
+
+## Security Features
+
+- Password hashing with bcryptjs
+- Rate limiting on all API endpoints (Upstash Redis)
+- Input validation with Zod schemas
+- Authentication middleware protecting routes
+- User authorization (users can only access their own trips)
+
+## Deployment
+
+- Frontend & API deployed on Vercel (Next.js App Router)
+- PostgreSQL hosted on managed cloud database
+- Authentication handled via NextAuth.js
+- Rate limiting via Upstash Redis
+- Environment-based configuration for dev/prod parity

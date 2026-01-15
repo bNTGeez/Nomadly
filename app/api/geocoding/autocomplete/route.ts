@@ -67,7 +67,10 @@ export async function GET(request: NextRequest) {
       }
     } catch (rateLimitError) {
       // If rate limiting fails (e.g., Redis unavailable), log and continue
-      console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
+      console.warn(
+        "Rate limiting failed, continuing without rate limit:",
+        rateLimitError
+      );
     }
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get("q");

@@ -29,12 +29,18 @@ export const POST = withAuthPOST(
           const reset = !r1.success ? r1.reset : r2.reset;
           return NextResponse.json(
             { error: "Rate limit exceeded. Try again soon." },
-            { status: 429, headers: { "Retry-After": retryAfterSeconds(reset) } }
+            {
+              status: 429,
+              headers: { "Retry-After": retryAfterSeconds(reset) },
+            }
           );
         }
       } catch (rateLimitError) {
         // If rate limiting fails (e.g., Redis unavailable), log and continue
-        console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
+        console.warn(
+          "Rate limiting failed, continuing without rate limit:",
+          rateLimitError
+        );
       }
       const { tripId } = await params;
       const body = await request.json();

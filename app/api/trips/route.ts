@@ -41,7 +41,10 @@ export const GET = withAuthGET(async (request: AuthenticatedRequest) => {
       }
     } catch (rateLimitError) {
       // If rate limiting fails (e.g., Redis unavailable), log and continue
-      console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
+      console.warn(
+        "Rate limiting failed, continuing without rate limit:",
+        rateLimitError
+      );
     }
     // Get all trips for the authenticated user
     const trips = await prisma.trip.findMany({
@@ -82,7 +85,10 @@ export const POST = withAuthPOST(async (request: AuthenticatedRequest) => {
       }
     } catch (rateLimitError) {
       // If rate limiting fails (e.g., Redis unavailable), log and continue
-      console.warn("Rate limiting failed, continuing without rate limit:", rateLimitError);
+      console.warn(
+        "Rate limiting failed, continuing without rate limit:",
+        rateLimitError
+      );
     }
     const body = await request.json();
 

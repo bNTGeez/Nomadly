@@ -134,3 +134,7 @@ Supports credentials-based authentication via NextAuth.js.
 - Authentication handled via NextAuth.js
 - Rate limiting via Upstash Redis
 - Environment-based configuration for dev/prod parity
+
+Check it out:
+
+https://nomadly-eosfon1t5-benjamin-tangs-projects.vercel.app/
